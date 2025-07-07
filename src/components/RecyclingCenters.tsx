@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, MapPin, Phone, Clock, Star, Search } from "lucide-react";
 import { useState } from "react";
+import { useRecyclingCenters } from "@/hooks/useRecyclingCenters";
 
 interface RecyclingCentersProps {
   onBack: () => void;
@@ -12,61 +13,39 @@ interface RecyclingCentersProps {
 
 const RecyclingCenters = ({ onBack }: RecyclingCentersProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-
-  const centers = [
-    {
-      id: 1,
-      name: "Green Electronics Recycling Center",
-      address: "123 Eco Street, Downtown",
-      phone: "(555) 123-4567",
-      hours: "Mon-Fri: 8:00 AM - 6:00 PM",
-      rating: 4.8,
-      specialties: ["Mobile Devices", "Computers", "Batteries"],
-      distance: "2.3 miles",
-      certified: true
-    },
-    {
-      id: 2,
-      name: "EcoTech Waste Solutions",
-      address: "456 Sustainable Ave, Midtown",
-      phone: "(555) 234-5678",
-      hours: "Mon-Sat: 9:00 AM - 5:00 PM",
-      rating: 4.6,
-      specialties: ["TV & Monitors", "Appliances", "Gaming Consoles"],
-      distance: "3.1 miles",
-      certified: true
-    },
-    {
-      id: 3,
-      name: "Digital Disposal Hub",
-      address: "789 Recycle Blvd, Uptown",
-      phone: "(555) 345-6789",
-      hours: "Tue-Sat: 10:00 AM - 7:00 PM",
-      rating: 4.5,
-      specialties: ["Smartphones", "Tablets", "Laptops"],
-      distance: "4.2 miles",
-      certified: true
-    },
-    {
-      id: 4,
-      name: "Metro Electronics Recovery",
-      address: "321 Green Way, Suburb",
-      phone: "(555) 456-7890",
-      hours: "Mon-Fri: 7:00 AM - 4:00 PM",
-      rating: 4.7,
-      specialties: ["Industrial Electronics", "Server Equipment"],
-      distance: "5.8 miles",
-      certified: false
-    }
-  ];
+  const { centers, loading, error } = useRecyclingCenters();
 
   const filteredCenters = centers.filter(center =>
     center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     center.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    center.specialties.some(specialty => 
+    (center.specialties && center.specialties.some(specialty => 
       specialty.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    ))
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+        <div className="text-center">
+          <MapPin className="h-12 w-12 text-green-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-gray-600">Loading recycling centers...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Error loading recycling centers: {error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
@@ -127,34 +106,43 @@ const RecyclingCenters = ({ onBack }: RecyclingCentersProps) => {
                     </CardTitle>
                     <CardDescription className="flex items-center mt-2">
                       <MapPin className="h-4 w-4 mr-1" />
-                      {center.address} • {center.distance}
+                      {center.address}, {center.city}
+                      {center.distance_miles && ` • ${center.distance_miles} miles`}
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium">{center.rating}</span>
-                  </div>
+                  {center.rating && (
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="font-medium">{center.rating}</span>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {center.specialties.map((specialty) => (
-                      <Badge key={specialty} variant="secondary">
-                        {specialty}
-                      </Badge>
-                    ))}
-                  </div>
+                  {center.specialties && center.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {center.specialties.map((specialty) => (
+                        <Badge key={specialty} variant="secondary">
+                          {specialty}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div className="flex items-center">
-                      <Phone className="h-4 w-4 mr-2" />
-                      {center.phone}
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2" />
-                      {center.hours}
-                    </div>
+                    {center.phone && (
+                      <div className="flex items-center">
+                        <Phone className="h-4 w-4 mr-2" />
+                        {center.phone}
+                      </div>
+                    )}
+                    {center.hours && (
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2" />
+                        {center.hours}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex justify-end space-x-2">
@@ -171,7 +159,7 @@ const RecyclingCenters = ({ onBack }: RecyclingCentersProps) => {
           ))}
         </div>
 
-        {filteredCenters.length === 0 && (
+        {filteredCenters.length === 0 && !loading && (
           <Card>
             <CardContent className="text-center py-12">
               <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />

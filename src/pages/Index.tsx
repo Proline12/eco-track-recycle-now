@@ -1,8 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { 
   Recycle, 
@@ -20,34 +19,56 @@ import UserDashboard from "@/components/UserDashboard";
 import AdminDashboard from "@/components/AdminDashboard";
 import EWasteForm from "@/components/EWasteForm";
 import RecyclingCenters from "@/components/RecyclingCenters";
-import LoginForm from "@/components/LoginForm";
+import AuthPage from "@/components/AuthPage";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState("home");
-  const [user, setUser] = useState(null);
+  const { user, loading } = useAuth();
 
-  const handleLogin = (userData: any) => {
-    setUser(userData);
-    setCurrentView(userData.role === 'admin' ? 'admin' : 'dashboard');
-  };
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (user && currentView === "home") {
+      setCurrentView("dashboard");
+    }
+  }, [user, currentView]);
 
   const handleLogout = () => {
-    setUser(null);
     setCurrentView("home");
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+        <div className="text-center">
+          <Recycle className="h-12 w-12 text-green-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   const renderContent = () => {
+    // If user is authenticated, show appropriate dashboard
+    if (user) {
+      switch (currentView) {
+        case "submit":
+          return <EWasteForm onBack={() => setCurrentView("dashboard")} />;
+        case "centers":
+          return <RecyclingCenters onBack={() => setCurrentView("dashboard")} />;
+        case "admin":
+          return <AdminDashboard user={user} onLogout={handleLogout} />;
+        default:
+          return <UserDashboard user={user} onLogout={handleLogout} />;
+      }
+    }
+
+    // If user is not authenticated, show public pages
     switch (currentView) {
-      case "login":
-        return <LoginForm onLogin={handleLogin} onBack={() => setCurrentView("home")} />;
-      case "submit":
-        return <EWasteForm onBack={() => setCurrentView("home")} />;
+      case "auth":
+        return <AuthPage onBack={() => setCurrentView("home")} />;
       case "centers":
         return <RecyclingCenters onBack={() => setCurrentView("home")} />;
-      case "dashboard":
-        return <UserDashboard user={user} onLogout={handleLogout} />;
-      case "admin":
-        return <AdminDashboard user={user} onLogout={handleLogout} />;
       default:
         return (
           <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
@@ -68,7 +89,7 @@ const Index = () => {
                       <MapPin className="h-4 w-4 mr-2" />
                       Find Centers
                     </Button>
-                    <Button onClick={() => setCurrentView("login")}>
+                    <Button onClick={() => setCurrentView("auth")}>
                       Sign In
                     </Button>
                   </div>
@@ -97,10 +118,10 @@ const Index = () => {
                     <Button 
                       size="lg" 
                       className="eco-gradient text-white hover:opacity-90"
-                      onClick={() => setCurrentView("submit")}
+                      onClick={() => setCurrentView("auth")}
                     >
                       <Smartphone className="h-5 w-5 mr-2" />
-                      Submit E-Waste
+                      Get Started
                     </Button>
                     <Button 
                       size="lg" 

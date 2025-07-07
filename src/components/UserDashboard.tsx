@@ -13,8 +13,12 @@ import {
   Award,
   Clock,
   CheckCircle,
-  Truck
+  Truck,
+  MapPin
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useEWasteSubmissions } from "@/hooks/useEWasteSubmissions";
+import { useState } from "react";
 
 interface UserDashboardProps {
   user: any;
@@ -22,34 +26,19 @@ interface UserDashboardProps {
 }
 
 const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
-  const recentSubmissions = [
-    {
-      id: 1,
-      date: "2024-01-15",
-      items: ["iPhone 12", "Dell Laptop"],
-      status: "completed",
-      pickupDate: "2024-01-20"
-    },
-    {
-      id: 2,
-      date: "2024-01-10",
-      items: ["Samsung TV", "iPad Air"],
-      status: "processing",
-      pickupDate: "2024-01-25"
-    },
-    {
-      id: 3,
-      date: "2024-01-05",
-      items: ["Old Desktop"],
-      status: "scheduled",
-      pickupDate: "2024-01-30"
-    }
-  ];
+  const { signOut } = useAuth();
+  const { submissions, loading } = useEWasteSubmissions();
+  const [currentView, setCurrentView] = useState("overview");
+
+  const handleLogout = async () => {
+    await signOut();
+    onLogout();
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
-      case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
       case 'scheduled': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -58,11 +47,15 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle className="h-4 w-4" />;
-      case 'processing': return <Clock className="h-4 w-4" />;
+      case 'in_progress': return <Clock className="h-4 w-4" />;
       case 'scheduled': return <Calendar className="h-4 w-4" />;
       default: return <Package className="h-4 w-4" />;
     }
   };
+
+  const completedSubmissions = submissions.filter(s => s.status === 'completed').length;
+  const pendingSubmissions = submissions.filter(s => s.status === 'pending').length;
+  const totalItems = submissions.reduce((sum, s) => sum + (s.quantity || 1), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
@@ -72,11 +65,19 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-900">
-                Welcome back, {user.name}!
+                Welcome back, {user.user_metadata?.full_name || user.email}!
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onLogout}>
+              <Button variant="outline" onClick={() => setCurrentView("submit")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Submit E-Waste
+              </Button>
+              <Button variant="outline" onClick={() => setCurrentView("centers")}>
+                <MapPin className="h-4 w-4 mr-2" />
+                Find Centers
+              </Button>
+              <Button variant="ghost" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
@@ -94,58 +95,57 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">23</div>
+              <div className="text-2xl font-bold">{totalItems}</div>
               <p className="text-xs text-muted-foreground">
-                +4 from last month
+                Items submitted
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">CO2 Saved</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Completed</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">145 kg</div>
+              <div className="text-2xl font-bold">{completedSubmissions}</div>
               <p className="text-xs text-muted-foreground">
-                Environmental impact
+                Successfully recycled
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Pickups</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">2</div>
+              <div className="text-2xl font-bold">{pendingSubmissions}</div>
               <p className="text-xs text-muted-foreground">
-                Next: Jan 25, 2024
+                Awaiting processing
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Eco Points</CardTitle>
+              <CardTitle className="text-sm font-medium">Eco Impact</CardTitle>
               <Award className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,247</div>
+              <div className="text-2xl font-bold">{Math.round(totalItems * 2.5)} kg</div>
               <p className="text-xs text-muted-foreground">
-                Recycling rewards
+                CO2 emissions prevented
               </p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={currentView} onValueChange={setCurrentView} className="space-y-6">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="submissions">My Submissions</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule Pickup</TabsTrigger>
             <TabsTrigger value="impact">Environmental Impact</TabsTrigger>
           </TabsList>
 
@@ -158,24 +158,43 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
                   <CardDescription>Your latest e-waste disposal requests</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {recentSubmissions.map((submission) => (
-                      <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          {getStatusIcon(submission.status)}
-                          <div>
-                            <p className="font-medium">{submission.items.join(', ')}</p>
-                            <p className="text-sm text-gray-500">
-                              Submitted: {submission.date}
-                            </p>
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <Package className="h-8 w-8 text-gray-400 mx-auto mb-2 animate-pulse" />
+                      <p className="text-gray-500">Loading submissions...</p>
+                    </div>
+                  ) : submissions.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500">No submissions yet</p>
+                      <Button 
+                        className="mt-4 eco-gradient" 
+                        onClick={() => setCurrentView("submit")}
+                      >
+                        Submit Your First Item
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {submissions.slice(0, 5).map((submission) => (
+                        <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            {getStatusIcon(submission.status || 'pending')}
+                            <div>
+                              <p className="font-medium">{submission.device_name}</p>
+                              <p className="text-sm text-gray-500">
+                                {submission.brand && `${submission.brand} • `}
+                                {new Date(submission.created_at || '').toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
+                          <Badge className={getStatusColor(submission.status || 'pending')}>
+                            {submission.status || 'pending'}
+                          </Badge>
                         </div>
-                        <Badge className={getStatusColor(submission.status)}>
-                          {submission.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -185,13 +204,20 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button className="w-full eco-gradient">
+                  <Button 
+                    className="w-full eco-gradient"
+                    onClick={() => setCurrentView("submit")}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Submit E-Waste
                   </Button>
-                  <Button variant="outline" className="w-full">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Pickup
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setCurrentView("centers")}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Find Centers
                   </Button>
                   <Button variant="outline" className="w-full">
                     <TrendingUp className="h-4 w-4 mr-2" />
@@ -209,63 +235,60 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
                 <CardDescription>Complete history of your e-waste submissions</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {recentSubmissions.map((submission) => (
-                    <Card key={submission.id}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Badge className={getStatusColor(submission.status)}>
-                                {submission.status}
-                              </Badge>
-                              <span className="text-sm text-gray-500">
-                                #{submission.id.toString().padStart(4, '0')}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-medium">{submission.items.join(', ')}</p>
-                              <p className="text-sm text-gray-500">
-                                Submitted: {submission.date}
-                              </p>
-                              {submission.pickupDate && (
+                {loading ? (
+                  <div className="text-center py-8">
+                    <Package className="h-8 w-8 text-gray-400 mx-auto mb-2 animate-pulse" />
+                    <p className="text-gray-500">Loading submissions...</p>
+                  </div>
+                ) : submissions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">No submissions yet</p>
+                    <Button 
+                      className="mt-4 eco-gradient" 
+                      onClick={() => setCurrentView("submit")}
+                    >
+                      Submit Your First Item
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {submissions.map((submission) => (
+                      <Card key={submission.id}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Badge className={getStatusColor(submission.status || 'pending')}>
+                                  {submission.status || 'pending'}
+                                </Badge>
+                                <span className="text-sm text-gray-500">
+                                  {submission.category}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-medium">{submission.device_name}</p>
+                                {submission.brand && (
+                                  <p className="text-sm text-gray-500">
+                                    {submission.brand} {submission.model && `• ${submission.model}`}
+                                  </p>
+                                )}
                                 <p className="text-sm text-gray-500">
-                                  Pickup: {submission.pickupDate}
+                                  Quantity: {submission.quantity || 1} • 
+                                  Condition: {submission.condition} • 
+                                  Submitted: {new Date(submission.created_at || '').toLocaleDateString()}
                                 </p>
-                              )}
+                              </div>
                             </div>
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
                           </div>
-                          <Button variant="outline" size="sm">
-                            View Details
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="schedule" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Schedule New Pickup</CardTitle>
-                <CardDescription>Book a convenient time for e-waste collection</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Pickup Scheduling
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Feature coming soon! For now, please submit your e-waste items and we'll contact you.
-                  </p>
-                  <Button className="eco-gradient">
-                    Submit E-Waste Request
-                  </Button>
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -281,25 +304,25 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span>CO2 Emissions Prevented</span>
-                      <span>145 kg</span>
+                      <span>{Math.round(totalItems * 2.5)} kg</span>
                     </div>
-                    <Progress value={73} className="h-2" />
+                    <Progress value={Math.min((totalItems * 2.5) / 100 * 100, 100)} className="h-2" />
                   </div>
                   
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Materials Recovered</span>
-                      <span>89%</span>
+                      <span>Items Recycled</span>
+                      <span>{completedSubmissions}/{totalItems}</span>
                     </div>
-                    <Progress value={89} className="h-2" />
+                    <Progress value={totalItems > 0 ? (completedSubmissions / totalItems) * 100 : 0} className="h-2" />
                   </div>
                   
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Energy Saved</span>
-                      <span>234 kWh</span>
+                      <span>Recycling Rate</span>
+                      <span>{totalItems > 0 ? Math.round((completedSubmissions / totalItems) * 100) : 0}%</span>
                     </div>
-                    <Progress value={67} className="h-2" />
+                    <Progress value={totalItems > 0 ? (completedSubmissions / totalItems) * 100 : 0} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
@@ -307,19 +330,21 @@ const UserDashboard = ({ user, onLogout }: UserDashboardProps) => {
               <Card>
                 <CardHeader>
                   <CardTitle>Recycling Goals</CardTitle>
-                  <CardDescription>Your annual sustainability targets</CardDescription>
+                  <CardDescription>Your sustainability targets</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-2">23/50</div>
+                    <div className="text-3xl font-bold text-green-600 mb-2">{totalItems}/50</div>
                     <p className="text-sm text-gray-600">Items recycled this year</p>
-                    <Progress value={46} className="mt-2" />
+                    <Progress value={(totalItems / 50) * 100} className="mt-2" />
                   </div>
                   
                   <div className="pt-4 border-t">
                     <div className="flex items-center justify-between text-sm">
                       <span>Next milestone: 30 items</span>
-                      <Badge variant="secondary">7 to go</Badge>
+                      <Badge variant="secondary">
+                        {Math.max(0, 30 - totalItems)} to go
+                      </Badge>
                     </div>
                   </div>
                 </CardContent>
