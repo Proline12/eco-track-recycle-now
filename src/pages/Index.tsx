@@ -78,7 +78,7 @@ const Index = () => {
                 <div className="flex justify-between h-16">
                   <div className="flex items-center">
                     <Recycle className="h-8 w-8 text-green-600" />
-                    <span className="ml-2 text-xl font-bold text-gray-900">EcoTrack</span>
+                    <span className="ml-2 text-xl font-bold text-gray-900">Mogadishu Company</span>
                   </div>
                   <div className="flex items-center space-x-4">
                     <Button 
@@ -235,7 +235,7 @@ const Index = () => {
                 <div className="text-center">
                   <div className="flex justify-center items-center mb-6">
                     <Recycle className="h-8 w-8 text-green-400" />
-                    <span className="ml-2 text-xl font-bold">EcoTrack</span>
+                    <span className="ml-2 text-xl font-bold">Mogadishu Company</span>
                   </div>
                   <p className="text-gray-400 mb-4">
                     Making electronic waste management simple and sustainable
