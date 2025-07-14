@@ -24,14 +24,18 @@ import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState("home");
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to appropriate dashboard
   useEffect(() => {
     if (user && currentView === "home") {
-      setCurrentView("dashboard");
+      if (isAdmin) {
+        setCurrentView("admin");
+      } else {
+        setCurrentView("dashboard");
+      }
     }
-  }, [user, currentView]);
+  }, [user, currentView, isAdmin]);
 
   const handleLogout = () => {
     setCurrentView("home");
@@ -51,13 +55,15 @@ const Index = () => {
   const renderContent = () => {
     // If user is authenticated, show appropriate dashboard
     if (user) {
+      if (isAdmin) {
+        return <AdminDashboard user={user} onLogout={handleLogout} />;
+      }
+
       switch (currentView) {
         case "submit":
           return <EWasteForm onBack={() => setCurrentView("dashboard")} />;
         case "centers":
           return <RecyclingCenters onBack={() => setCurrentView("dashboard")} />;
-        case "admin":
-          return <AdminDashboard user={user} onLogout={handleLogout} />;
         default:
           return <UserDashboard user={user} onLogout={handleLogout} />;
       }

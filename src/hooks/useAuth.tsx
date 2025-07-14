@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,13 +19,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener
+    // Check for admin session first
+    const checkAdminSession = () => {
+      const adminSession = localStorage.getItem('admin_session');
+      if (adminSession) {
+        try {
+          const adminUser = JSON.parse(adminSession);
+          setUser(adminUser as User);
+          setIsAdmin(true);
+          setLoading(false);
+          return true;
+        } catch (error) {
+          localStorage.removeItem('admin_session');
+        }
+      }
+      return false;
+    };
+
+    // If admin session exists, use it
+    if (checkAdminSession()) {
+      return;
+    }
+
+    // Set up auth state listener for regular users
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        setIsAdmin(session?.user?.user_metadata?.role === 'admin');
         setLoading(false);
       }
     );
@@ -33,6 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setIsAdmin(session?.user?.user_metadata?.role === 'admin');
       setLoading(false);
     });
 
@@ -64,6 +90,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Clear admin session if exists
+    localStorage.removeItem('admin_session');
+    setIsAdmin(false);
     await supabase.auth.signOut();
   };
 
@@ -74,7 +103,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       signUp,
       signIn,
       signOut,
-      loading
+      loading,
+      isAdmin
     }}>
       {children}
     </AuthContext.Provider>
