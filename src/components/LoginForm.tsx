@@ -128,7 +128,7 @@ const LoginForm = ({ onLogin, onBack }: LoginFormProps) => {
                     Sign In
                   </Button>
                   <div className="text-sm text-center text-gray-600 mt-4">
-                    Demo: Use admin@ecotrack.com for admin access
+                    Demo: Use ahmedbarreS15@gmail.com for admin access
                   </div>
                 </form>
               </TabsContent>
