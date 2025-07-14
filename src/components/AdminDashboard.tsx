@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +19,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AdminDashboardProps {
   user: any;
@@ -27,8 +27,14 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
+  const { signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const handleSignOut = async () => {
+    await signOut();
+    onLogout();
+  };
 
   const submissions = [
     {
@@ -129,7 +135,7 @@ const AdminDashboard = ({ user, onLogout }: AdminDashboardProps) => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={onLogout}>
+              <Button variant="ghost" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
